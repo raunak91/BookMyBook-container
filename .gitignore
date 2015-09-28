@@ -1,0 +1,13 @@
+*.idea
+*.log*
+*.iml
+*.patch
+*.iws
+*.ipr
+*.ids
+*jar
+lib
+classes
+target
+out
+git-daemon-export-ok
