@@ -104,14 +104,68 @@ class UserController {
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
             return
         }
-        if(user.books.contains(book)) {
-            returnMap.value = "Book Already owned by user"
+
+        def bookOwned = user.books.find{it.book == book}
+
+        if(bookOwned) {
+            bookOwned.ownedCount ++
+
+            user.books.add(bookOwned)
+        } else {
+            def userBookOwnMap = new UserBookOwnMapping()
+
+            userBookOwnMap.user = user
+            userBookOwnMap.book = book
+            userBookOwnMap.ownedCount = 1
+
+            user.books.add(userBookOwnMap)
+        }
+
+        user.save(flush: true, failOnError: true)
+        returnMap.status = "SUCCESS"
+        render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+    }
+
+    def removeBook() {
+        def returnMap = [:]
+
+        def deviceId = params.DEVICE_ID
+        def bookName = params.BOOK_NAME
+        def bookAuthor = params.BOOK_AUTHOR
+
+        if(!deviceId || !bookAuthor || !bookName) {
+            returnMap.value = "Book Author or Name empty"
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
             return
         }
-        user.books.add(book)
-        user.save()
 
+        def book = Book.findByNameAndAuthor(bookName, bookAuthor)
+
+        if(!book) {
+            returnMap.value = "Book not present"
+            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+            return
+        }
+
+        def user = User.findByDeviceId(deviceId)
+        if(!user) {
+            returnMap.value = "USER not found"
+            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+            return
+        }
+
+        def bookOwned = user.books.find{it.book == book}
+
+        if(bookOwned) {
+            bookOwned.ownedCount --
+            user.books.add(bookOwned)
+        } else {
+            returnMap.value = "Book not Owned by User"
+            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+            return
+        }
+
+        user.save(flush: true, failOnError: true)
         returnMap.status = "SUCCESS"
         render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
     }
