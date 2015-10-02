@@ -6,8 +6,16 @@ class Book {
     String name
     String author
     Integer count
-//    String imageUrl
+    List<String> imageUrl
+
+    static hasMany = [users: UserBookOwnMapping,
+                      bookLent: UserBookLentMapping]
+
+    static mappedBy = [users: 'book',
+                       bookLent: 'book']
 
     static constraints = {
+
     }
+
 }
