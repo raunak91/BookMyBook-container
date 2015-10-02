@@ -4,6 +4,8 @@ import grails.converters.JSON
 
 class UserController {
 
+    def bookService
+
     def index() { }
 
     def saveUser() {
@@ -43,7 +45,14 @@ class UserController {
         def deviceId = params.DEVICE_ID
 
         def user = User.findByDeviceId(deviceId)
-        def books = user?.books?:[]
+        def books = []
+        if(user) {
+            books = user.books ? user.books.collect { it.book } : []
+        } else {
+            returnMap.value = "USER not found"
+            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+            return
+        }
 
         returnMap = [status: "SUCCESS", books: books]
         render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
@@ -81,6 +90,7 @@ class UserController {
 
     def addBook() {
         def returnMap = [:]
+        returnMap.status="FAILURE"
 
         def deviceId = params.DEVICE_ID
         def bookName = params.BOOK_NAME
@@ -109,7 +119,6 @@ class UserController {
 
         if(bookOwned) {
             bookOwned.ownedCount ++
-
             user.books.add(bookOwned)
         } else {
             def userBookOwnMap = new UserBookOwnMapping()
@@ -128,6 +137,7 @@ class UserController {
 
     def removeBook() {
         def returnMap = [:]
+        returnMap.status="FAILURE"
 
         def deviceId = params.DEVICE_ID
         def bookName = params.BOOK_NAME
@@ -168,5 +178,48 @@ class UserController {
         user.save(flush: true, failOnError: true)
         returnMap.status = "SUCCESS"
         render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+    }
+
+    def borrowBook() {
+        def returnMap = [:]
+        returnMap.status="FAILURE"
+
+        def deviceId = params.DEVICE_ID
+        def bookName = params.BOOK_NAME
+        def bookAuthor = params.BOOK_AUTHOR
+        def city = params.CITY
+        def bookOwnerId = params.OWNER
+
+        if(!deviceId || !bookAuthor || !bookName) {
+            returnMap.value = "Book Author or Name empty"
+            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+            return
+        }
+        def user = User.findByDeviceId(deviceId)
+        if(!user) {
+            returnMap.value = "USER not found"
+            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+            return
+        }
+
+        def availableBooks = bookService.fetchAvailableBooks(bookAuthor, bookName, city)
+        def bookWanted = availableBooks.find{it.userId == bookOwnerId}
+        if(bookWanted) {
+            lendBook(user, bookWanted)
+        } else {
+            lendBook(user, availableBooks.get(0))
+        }
+
+        returnMap.status = "SUCCESS"
+        render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+    }
+
+    private def lendBook(lendee, book) {
+        def lender = User.get(book.userId)
+        def userBookLentMapping = new UserBookLentMapping()
+        userBookLentMapping.bookLendee = lendee
+        userBookLentMapping.bookLender = lender
+        userBookLentMapping.book = book.book
+        userBookLentMapping.save(flush: true, failOnError: true)
     }
 }

@@ -61,10 +61,11 @@ class BookController {
         def book = Book.findByNameAndAuthor(name, author)
 
         if(book) {
+            returnMap.value = "Book Already Present"
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
             return
         } else {
-            new Book(name: name, author: author).save(flush: true, failOnError: true)
+            new Book(name: name, author: author, count: 0).save(flush: true, failOnError: true)
         }
 
         returnMap.status = "SUCCESS"
