@@ -20,37 +20,6 @@ class BookService {
         }
     }
 
-    def removeBook(String bookName, String bookAuthor) {
-        def returnMap = [:]
-        returnMap.status="FAILURE"
-
-        if(!bookAuthor || !bookName) {
-            returnMap.value = "Book Author or Name empty"
-            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        }
-
-        def book = Book.findByNameAndAuthor(bookName, bookAuthor)
-
-        if(!book) {
-            returnMap.value = "Book cannot be determined. Please provide unique identifying details "
-            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        }
-
-        def bookOwned = UserBookOwnMapping.findByBookId(book.id)
-
-        if(bookOwned) {
-            returnMap.value = "Book Owned by User. Cannot be removed."
-            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        }
-
-        book.delete(flush: true, failOnError: true)
-        returnMap.status = "SUCCESS"
-        render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-    }
-
     def fetchBooks(String author, String name, String city) {
         return fetchBooks(author, name, city, false)
     }
