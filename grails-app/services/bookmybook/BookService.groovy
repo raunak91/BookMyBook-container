@@ -10,18 +10,14 @@ class BookService {
 
     }
 
-    def addBook(String bookName, String bookAuthor) {
+    Book addBook(String bookName, String bookAuthor) {
         def book = Book.findByNameAndAuthor(bookName, bookAuthor)
 
         if(book) {
-            returnMap.value = "Book already registered"
+            return null
         } else {
-            book = new Book(name: bookName, author: bookAuthor).save(flush: true, failOnError: true)
-            returnMap.status = "SUCCESS"
+            return new Book(name: bookName, author: bookAuthor).save(flush: true, failOnError: true)
         }
-
-        returnMap.book = book
-        render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
     }
 
     def removeBook(String bookName, String bookAuthor) {
