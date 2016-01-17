@@ -2,9 +2,10 @@ package bookmybook
 
 class UserBookOwnMapping {
 
-    User user
-    Book book
-    Integer ownedCount
+    Long userId
+    Long bookId
+    Boolean openToLend
+    Boolean lent
 
     static constraints = {
     }

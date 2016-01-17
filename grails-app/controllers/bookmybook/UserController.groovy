@@ -16,25 +16,26 @@ class UserController {
         def name = params.NAME
         def email = params.EMAIL
         def city = params.CITY
+        def mobile = params.mobile
 
-        if (!deviceId || !email) {
+        if (!deviceId || !email || !mobile) {
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
             return
         }
 
         if(User.findByDeviceId(deviceId)) {
-            returnMap.reason = "DeviceId Registered"
+            returnMap.reason = "DeviceId Already Registered"
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
             return
         } else if(User.findByEmail(email)) {
-            returnMap.reason = "Email Registered"
+            returnMap.reason = "Email Already Registered"
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
             return
         } else {
             new User(name: name, email: email, deviceId: deviceId, city: city).save(flush:true, failOnError: true)
         }
 
-        returnMap.status="SUCCESS"
+        returnMap.status=" User Successfully Registered"
         render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
     }
 
@@ -45,139 +46,100 @@ class UserController {
         def deviceId = params.DEVICE_ID
 
         def user = User.findByDeviceId(deviceId)
-        def books = []
         if(user) {
-            books = user.books ? user.books.collect { it.book } : []
+            def booksIds = UserBookOwnMapping.findByUserId(user.id).collect {it.bookId}
+            def books = Book.findAllByIdInList(booksIds)
+            returnMap = [status: "SUCCESS", books: books]
+            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
         } else {
             returnMap.value = "USER not found"
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
         }
-
-        returnMap = [status: "SUCCESS", books: books]
-        render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
     }
 
     def findUser() {
-        def returnMap = [:]
-        returnMap.status="FAILURE"
-
-        def deviceId = params.DEVICE_ID
-        def name = params.NAME
-        def email = params.EMAIL
-        def city = params.CITY
-
-        if (!deviceId || !email) {
-            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        }
-
-        if(User.findByDeviceId(deviceId)) {
-            returnMap.reason = "DeviceId Registered"
-            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        } else if(User.findByEmail(email)) {
-            returnMap.reason = "Email Registered"
-            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        } else {
-            new User(name: name, email: email, deviceId: deviceId, city: city).save(flush:true, failOnError: true)
-        }
-
-        returnMap.status="SUCCESS"
-        render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+        String deviceId = params.DEVICE_ID
+        String email = params.EMAIL_ID
+        return findUser(deviceId, email)
     }
 
-    def addBook() {
-        def returnMap = [:]
-        returnMap.status="FAILURE"
-
-        def deviceId = params.DEVICE_ID
-        def bookName = params.BOOK_NAME
-        def bookAuthor = params.BOOK_AUTHOR
-
-        if(!deviceId || !bookAuthor || !bookName) {
-            returnMap.value = "Book Author or Name empty"
-            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        }
-
-        def book = Book.findByNameAndAuthor(bookName, bookAuthor)
-
-        if(!book) {
-            book = new Book(name: bookName, author: bookAuthor).save(flush: true, failOnError: true)
-        }
-
-        def user = User.findByDeviceId(deviceId)
-        if(!user) {
-            returnMap.value = "USER not found"
-            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        }
-
-        def bookOwned = user.books.find{it.book == book}
-
-        if(bookOwned) {
-            bookOwned.ownedCount ++
-            user.books.add(bookOwned)
+    def findUser(String deviceId, String email) {
+        if(deviceId) {
+            return findUserByDeviceId(deviceId)
         } else {
-            def userBookOwnMap = new UserBookOwnMapping()
-
-            userBookOwnMap.user = user
-            userBookOwnMap.book = book
-            userBookOwnMap.ownedCount = 1
-
-            user.books.add(userBookOwnMap)
+            return findUserByEmail(email)
         }
-
-        user.save(flush: true, failOnError: true)
-        returnMap.status = "SUCCESS"
-        render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
     }
 
-    def removeBook() {
+    def findUserByDeviceId(String deviceId) {
         def returnMap = [:]
         returnMap.status="FAILURE"
 
-        def deviceId = params.DEVICE_ID
-        def bookName = params.BOOK_NAME
-        def bookAuthor = params.BOOK_AUTHOR
-
-        if(!deviceId || !bookAuthor || !bookName) {
-            returnMap.value = "Book Author or Name empty"
-            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        }
-
-        def book = Book.findByNameAndAuthor(bookName, bookAuthor)
-
-        if(!book) {
-            returnMap.value = "Book not present"
+        if (!deviceId) {
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
             return
         }
 
         def user = User.findByDeviceId(deviceId)
         if(!user) {
-            returnMap.value = "USER not found"
+            returnMap.reason = "Device not Registered"
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        }
-
-        def bookOwned = user.books.find{it.book == book}
-
-        if(bookOwned) {
-            bookOwned.ownedCount --
-            user.books.add(bookOwned)
         } else {
-            returnMap.value = "Book not Owned by User"
+            returnMap.user = user
+            returnMap.status="SUCCESS"
+            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+        }
+    }
+
+    def findUserByEmail(String email) {
+        def returnMap = [:]
+        returnMap.status="FAILURE"
+
+        if (!email) {
+            returnMap.reason = "Email not provided"
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
             return
         }
 
-        user.save(flush: true, failOnError: true)
-        returnMap.status = "SUCCESS"
-        render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+        def user = User.findByEmail(email)
+        if(!user) {
+            returnMap.reason = "Email not Registered"
+            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+        } else {
+            returnMap.user = user
+            returnMap.status="SUCCESS"
+            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+        }
+    }
+
+    def addBookToUser() {
+        def returnMap = [:]
+        returnMap.status="FAILURE"
+
+        String deviceId = params.DEVICE_ID
+        String email = params.EMAIL_ID
+
+        def user = findUser(deviceId, email)
+        if(user.user) {
+            String bookName = params.BOOK_NAME
+            String bookAuthor = params.BOOK_AUTHOR
+
+            if(!bookAuthor || !bookName) {
+                returnMap.value = "Incomplete Details!! Book Author or Name empty"
+                render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+                return
+            }
+
+            def book = Book.findByAuthorAndName(bookAuthor, bookName)
+            if(book) {
+                new UserBookOwnMapping(userId: user.user.id, bookId: book.id).save(flush: true)
+                book.count ++
+                book.save(flush: true)
+            } else {
+                bookService.addBook(bookName, bookAuthor)
+            }
+        }
+
     }
 
     def borrowBook() {
@@ -216,10 +178,5 @@ class UserController {
 
     private def lendBook(lendee, book) {
         def lender = User.get(book.userId)
-        def userBookLentMapping = new UserBookLentMapping()
-        userBookLentMapping.bookLendee = lendee
-        userBookLentMapping.bookLender = lender
-        userBookLentMapping.book = book.book
-        userBookLentMapping.save(flush: true, failOnError: true)
     }
 }

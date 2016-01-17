@@ -2,17 +2,13 @@ package bookmybook
 
 class Book {
 
-    Integer id
+    Long id
+    Integer count
     String name
     String author
-    Integer count
+    Integer price
     List<String> imageUrl
-
-    static hasMany = [users: UserBookOwnMapping,
-                      bookLent: UserBookLentMapping]
-
-    static mappedBy = [users: 'book',
-                       bookLent: 'book']
+    List<String> alias
 
     static constraints = {
 

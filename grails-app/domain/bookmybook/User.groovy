@@ -7,13 +7,7 @@ class User {
     String deviceId
     String name
     String email
-
-    static hasMany = [books: UserBookOwnMapping,
-                      bookLent: UserBookLentMapping,
-                      bookBorrowed: UserBookLentMapping]
-
-    static mappedBy = [bookLent: 'bookLender',
-                       bookBorrowed: 'bookLendee']
+    String mobile
 
     static constraints = {
         deviceId(unique: true)

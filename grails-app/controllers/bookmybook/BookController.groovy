@@ -8,39 +8,26 @@ class BookController {
 
     def index() { }
 
+    /*
+    Inputs Author, Book Name, and City.
+    Return a list of user Id and book Id
+     */
     def findBooks() {
         def returnMap = [:]
         returnMap.status = "FAILURE"
 
-        def author = params.AUTHOR
-        def name = params.NAME
-        def city = params.CITY
+        String author = params.AUTHOR
+        String name = params.NAME
+        String city = params.CITY
+        String availability = params.AVAILABILITY?:''
 
         if(!city || (!author && !name)) {
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
             return
         }
 
-        def userBookList = bookService.fetchBooks(author, name, city);
-
-        returnMap = [userBookList: userBookList, status: "SUCCESS"]
-        render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-    }
-
-    def fetchAvailableBooks() {
-        def returnMap = [:]
-        returnMap.status = "FAILURE"
-
-        def author = params.AUTHOR
-        def name = params.NAME
-        def city = params.CITY
-
-        if(!city || (!author && !name)) {
-            render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
-            return
-        }
-
-        def userBookList = bookService.fetchAvailableBooks(author, name, city);
+        //TODO :Modify UserBookList
+        def userBookList = bookService.fetchBooks(author, name, city, 'true'.equals(availability));
 
         returnMap = [userBookList: userBookList, status: "SUCCESS"]
         render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
@@ -50,8 +37,8 @@ class BookController {
         def returnMap = [:]
         returnMap.status = "FAILURE"
 
-        def author = params.AUTHOR
-        def name = params.NAME
+        String author = params.AUTHOR
+        String name = params.NAME
 
         if(!author || !name) {
             render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
@@ -70,5 +57,12 @@ class BookController {
 
         returnMap.status = "SUCCESS"
         render(text: returnMap as JSON, contentType: "application/json", encoding: "UTF-8");
+    }
+
+    def removeBook() {
+        String bookName = params.BOOK_NAME
+        String bookAuthor = params.BOOK_AUTHOR
+
+        return bookService.removeBook(bookName, bookAuthor)
     }
 }
